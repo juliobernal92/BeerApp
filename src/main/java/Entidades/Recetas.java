@@ -1,7 +1,11 @@
 package Entidades;
+
+import java.math.BigDecimal;
+
 public class Recetas {
     private int IdRecetas;
     private String Nombre;
+    private BigDecimal Litros;
     private int CostoTotal;
 
     /**
@@ -32,6 +36,17 @@ public class Recetas {
         this.Nombre = Nombre;
     }
 
+    public BigDecimal getLitros() {
+        return Litros;
+    }
+
+    public void setLitros(BigDecimal Litros) {
+        this.Litros = Litros;
+    }
+
+    
+    
+    
     /**
      * @return the CostoTotal
      */

@@ -1,13 +1,19 @@
 package Vistas;
 
+import Dao.DetallesRecetaDao;
 import Dao.InsumosDao;
+import Dao.RecetasDao;
+import Entidades.DetallesReceta;
 import Entidades.Insumos;
+import Entidades.Recetas;
 import com.formdev.flatlaf.FlatDarkLaf;
+import groovy.xml.Entity;
 import java.awt.event.KeyEvent;
 import static java.awt.image.ImageObserver.HEIGHT;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
@@ -16,13 +22,34 @@ import javax.swing.table.TableModel;
 public class Main extends javax.swing.JFrame {
     Insumos insumos = new Insumos();
     InsumosDao insumosDao = new InsumosDao();
+    RecetasDao recetasDao = new RecetasDao();
+    Recetas recetas = new Recetas();
+    DetallesRecetaDao detallesDao = new DetallesRecetaDao();
+    DetallesReceta detalles = new DetallesReceta();
     List<Insumos> listaInsumos = new ArrayList<>();
+    List<Recetas> listaRecetas = new ArrayList<>();
+    List<DetallesReceta>listaDetalles = new ArrayList<>();
+    List<String> estilosReceta = recetasDao.obtenerEstilosReceta();
+    List<String> tiposInsumo = insumosDao.obtenerTiposInsumo();
+    private String estiloSeleccionado;
+    private int totalValor = 0;
     
     public Main() {
         initComponents();
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         actualizarTablaInsumos();
+        actualizarTablaReceta();
         cargarListaInsumos();
+        deshabilitarBotones();
+        deshabilitarBotonesReceta();
+        
+        
+        DefaultComboBoxModel<String> comboBoxModel = new DefaultComboBoxModel<>(estilosReceta.toArray(new String[0]));
+        cbrecetas.setModel(comboBoxModel);
+
+        for (String tipo : tiposInsumo) {
+            cbtipoinsumo.addItem(tipo);
+        }
     }
 
     private void habilitarBotones() {
@@ -45,7 +72,46 @@ public class Main extends javax.swing.JFrame {
         txtcostounitario.setText("");
         txtidinsumo.setText("");
     }
+    
+    private void habilitarBotonesReceta() {
+        btneditarreceta.setEnabled(true);
+        btneliminarreceta.setEnabled(true);
+        btnañadirreceta.setEnabled(false);
 
+    }
+    
+    private void habilitarBotonesRecetaInsumos(){
+        btneditarinsumo.setEnabled(true);
+        btneliminarinsumo.setEnabled(true);
+        btnañadirinsumo.setEnabled(false);
+    }
+    
+    private void deshabilitarBotonesRecetaInsumos(){
+        btneditarinsumo.setEnabled(false);
+        btneliminarinsumo.setEnabled(false);
+        btnañadirinsumo.setEnabled(true);
+    }
+
+    private void deshabilitarBotonesReceta() {
+        btneditarreceta.setEnabled(false);
+        btneliminarreceta.setEnabled(false);
+        btnañadirreceta.setEnabled(true);
+
+    }
+    
+    private void limpiarCamposReceta() {
+        txtestilo.setText("");
+        txtlitros.setText("");
+        txtidreceta.setText("");
+    }
+    
+    private void limpiarCamposDetallesReceta() {
+        txtiddetallesrecetas.setText("");
+        txtcantidadinsumo.setText("");
+    }
+    
+    
+    
     private void actualizarTablaInsumos() {
         // Obtener la lista de producciones desde la base de datos
         InsumosDao insDao = new InsumosDao();
@@ -86,6 +152,52 @@ public class Main extends javax.swing.JFrame {
         }
 
     }
+    
+    public void actualizarTablaReceta() {
+        // Obtener la lista de producciones desde la base de datos
+        RecetasDao recetasDao = new RecetasDao();
+        List<Recetas> recetaList = recetasDao.ObtenerTodos();
+
+        // Limpiar los datos existentes en la tabla
+        DefaultTableModel modelo = (DefaultTableModel) tbrecetas.getModel();
+        modelo.setRowCount(0);
+
+        // Agregar los nuevos datos a la tabla
+        for (Recetas receta : recetaList) {
+            Object[] fila = {receta.getIdRecetas(), receta.getNombre(), receta.getLitros()};
+            modelo.addRow(fila);
+        }
+
+        DefaultTableModel modelo2 = (DefaultTableModel) tbdetallesreceta.getModel();
+        modelo2.setRowCount(0); // Limpiar los datos actuales de la tabla
+
+        String idRecetaText = txtidreceta.getText().trim();
+
+        if (!idRecetaText.isEmpty()) {
+            int idReceta = Integer.parseInt(idRecetaText);
+
+            List<DetallesReceta> recetaInsumos = detallesDao.obtenerRecetaInsumoPorEstiloIdReceta(estiloSeleccionado, idReceta);
+
+            for (DetallesReceta recetaInsumo : recetaInsumos) {
+                Insumos stockInsumo = insumosDao.obtenerStockInsumoPorId(recetaInsumo.getIdInsumos());
+
+                modelo2.addRow(new Object[]{
+                    recetaInsumo.getIdDetalles(),
+                    stockInsumo.getTipoInsumo(),
+                    stockInsumo.getNombre(),
+                    recetaInsumo.getCantidad(),
+                    recetaInsumo.getCostoUnitario(),
+                    recetaInsumo.getIdInsumos()
+                });
+            }
+        }
+       
+        estilosReceta = recetasDao.obtenerEstilosReceta(); 
+
+        DefaultComboBoxModel<String> comboBoxModel = new DefaultComboBoxModel<>(estilosReceta.toArray(new String[0]));
+        cbrecetas.setModel(comboBoxModel);
+        
+    }
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -112,39 +224,39 @@ public class Main extends javax.swing.JFrame {
         tbinsumos = new javax.swing.JTable();
         txtidinsumo = new javax.swing.JTextField();
         jLabel5 = new javax.swing.JLabel();
-        jComboBox1 = new javax.swing.JComboBox<>();
+        cbtipoinsumoInsumos = new javax.swing.JComboBox<>();
         jPanel2 = new javax.swing.JPanel();
         jLabel4 = new javax.swing.JLabel();
         jLabel6 = new javax.swing.JLabel();
-        jTextField1 = new javax.swing.JTextField();
+        txtidreceta = new javax.swing.JTextField();
         jLabel7 = new javax.swing.JLabel();
-        jTextField2 = new javax.swing.JTextField();
+        txtestilo = new javax.swing.JTextField();
         jLabel8 = new javax.swing.JLabel();
-        jTextField3 = new javax.swing.JTextField();
-        jButton1 = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
-        jButton3 = new javax.swing.JButton();
-        jButton4 = new javax.swing.JButton();
+        txtlitros = new javax.swing.JTextField();
+        btnañadirreceta = new javax.swing.JButton();
+        btneditarreceta = new javax.swing.JButton();
+        btneliminarreceta = new javax.swing.JButton();
+        btnlimpiarreceta = new javax.swing.JButton();
         jScrollPane2 = new javax.swing.JScrollPane();
         tbrecetas = new javax.swing.JTable();
         jScrollPane3 = new javax.swing.JScrollPane();
-        jTable2 = new javax.swing.JTable();
+        tbdetallesreceta = new javax.swing.JTable();
         jLabel9 = new javax.swing.JLabel();
-        jTextField4 = new javax.swing.JTextField();
+        txtiddetallesrecetas = new javax.swing.JTextField();
         jLabel10 = new javax.swing.JLabel();
-        jComboBox2 = new javax.swing.JComboBox<>();
-        jButton5 = new javax.swing.JButton();
+        cbrecetas = new javax.swing.JComboBox<>();
+        btnseleccionarreceta = new javax.swing.JButton();
         jLabel11 = new javax.swing.JLabel();
         jLabel12 = new javax.swing.JLabel();
-        jComboBox3 = new javax.swing.JComboBox<>();
+        cbtipoinsumo = new javax.swing.JComboBox<>();
         jLabel13 = new javax.swing.JLabel();
-        jComboBox4 = new javax.swing.JComboBox<>();
+        cbnombreinsumo = new javax.swing.JComboBox<>();
         jLabel14 = new javax.swing.JLabel();
-        jTextField5 = new javax.swing.JTextField();
-        jButton6 = new javax.swing.JButton();
-        jButton7 = new javax.swing.JButton();
-        jButton8 = new javax.swing.JButton();
-        jButton9 = new javax.swing.JButton();
+        txtcantidadinsumo = new javax.swing.JTextField();
+        btnañadirinsumo = new javax.swing.JButton();
+        btneditarinsumo = new javax.swing.JButton();
+        btneliminarinsumo = new javax.swing.JButton();
+        btnlimpiarinsumo = new javax.swing.JButton();
         lblcosto = new javax.swing.JLabel();
         jPanel3 = new javax.swing.JPanel();
 
@@ -238,8 +350,8 @@ public class Main extends javax.swing.JFrame {
         jLabel5.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
         jLabel5.setText("Tipo Insumo");
 
-        jComboBox1.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
-        jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Malta", "Lupulo", "Levadura", "Otros", " " }));
+        cbtipoinsumoInsumos.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        cbtipoinsumoInsumos.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Malta", "Lupulo", "Levadura", "Otros" }));
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -258,7 +370,7 @@ public class Main extends javax.swing.JFrame {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jLabel5)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, 104, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(cbtipoinsumoInsumos, javax.swing.GroupLayout.PREFERRED_SIZE, 104, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jLabel2)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -294,7 +406,7 @@ public class Main extends javax.swing.JFrame {
                     .addComponent(btnlimpiar)
                     .addComponent(txtidinsumo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel5)
-                    .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(cbtipoinsumoInsumos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(18, 18, 18)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 548, Short.MAX_VALUE)
                 .addContainerGap())
@@ -310,29 +422,34 @@ public class Main extends javax.swing.JFrame {
         jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel6.setText("Añadir Receta");
 
-        jTextField1.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        txtidreceta.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
 
         jLabel7.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
         jLabel7.setText("Estilo");
 
-        jTextField2.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        txtestilo.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
 
         jLabel8.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
         jLabel8.setText("Litros");
 
-        jTextField3.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        txtlitros.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
 
-        jButton1.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
-        jButton1.setText("Añadir");
+        btnañadirreceta.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        btnañadirreceta.setText("Añadir");
+        btnañadirreceta.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnañadirrecetaActionPerformed(evt);
+            }
+        });
 
-        jButton2.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
-        jButton2.setText("Editar");
+        btneditarreceta.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        btneditarreceta.setText("Editar");
 
-        jButton3.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
-        jButton3.setText("Eliminar");
+        btneliminarreceta.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        btneliminarreceta.setText("Eliminar");
 
-        jButton4.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
-        jButton4.setText("Limpiar");
+        btnlimpiarreceta.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        btnlimpiarreceta.setText("Limpiar");
 
         tbrecetas.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -359,33 +476,58 @@ public class Main extends javax.swing.JFrame {
             tbrecetas.getColumnModel().getColumn(2).setPreferredWidth(20);
         }
 
-        jTable2.setModel(new javax.swing.table.DefaultTableModel(
+        tbdetallesreceta.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
+
             },
             new String [] {
-                "Title 1", "Title 2", "Title 3", "Title 4"
+                "ID", "Tipo Insumo", "Nombre", "Cantidad", "Costo", "ID Insumo"
             }
-        ));
-        jScrollPane3.setViewportView(jTable2);
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        tbdetallesreceta.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                tbdetallesrecetaMouseClicked(evt);
+            }
+        });
+        jScrollPane3.setViewportView(tbdetallesreceta);
+        if (tbdetallesreceta.getColumnModel().getColumnCount() > 0) {
+            tbdetallesreceta.getColumnModel().getColumn(0).setResizable(false);
+            tbdetallesreceta.getColumnModel().getColumn(0).setPreferredWidth(10);
+            tbdetallesreceta.getColumnModel().getColumn(1).setResizable(false);
+            tbdetallesreceta.getColumnModel().getColumn(2).setResizable(false);
+            tbdetallesreceta.getColumnModel().getColumn(3).setResizable(false);
+            tbdetallesreceta.getColumnModel().getColumn(4).setResizable(false);
+            tbdetallesreceta.getColumnModel().getColumn(5).setResizable(false);
+            tbdetallesreceta.getColumnModel().getColumn(5).setPreferredWidth(10);
+        }
 
         jLabel9.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
         jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel9.setText("Seleccionar Receta");
 
-        jTextField4.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        txtiddetallesrecetas.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
 
         jLabel10.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
         jLabel10.setText("Receta");
 
-        jComboBox2.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
-        jComboBox2.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        cbrecetas.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        cbrecetas.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
 
-        jButton5.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
-        jButton5.setText("Seleccionar");
+        btnseleccionarreceta.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        btnseleccionarreceta.setText("Seleccionar");
+        btnseleccionarreceta.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnseleccionarrecetaActionPerformed(evt);
+            }
+        });
 
         jLabel11.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
         jLabel11.setText("Añadir Insumos: ");
@@ -393,37 +535,61 @@ public class Main extends javax.swing.JFrame {
         jLabel12.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
         jLabel12.setText("Tipo");
 
-        jComboBox3.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
-        jComboBox3.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        cbtipoinsumo.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        cbtipoinsumo.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cbtipoinsumoActionPerformed(evt);
+            }
+        });
 
         jLabel13.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
         jLabel13.setText("Nombre");
 
-        jComboBox4.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
-        jComboBox4.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        cbnombreinsumo.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        cbnombreinsumo.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { " " }));
 
         jLabel14.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
         jLabel14.setText("Cantidad");
 
-        jTextField5.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        txtcantidadinsumo.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
 
-        jButton6.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
-        jButton6.setText("Añadir");
-        jButton6.setMaximumSize(new java.awt.Dimension(83, 29));
-        jButton6.setMinimumSize(new java.awt.Dimension(83, 29));
+        btnañadirinsumo.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        btnañadirinsumo.setText("Añadir");
+        btnañadirinsumo.setMaximumSize(new java.awt.Dimension(83, 29));
+        btnañadirinsumo.setMinimumSize(new java.awt.Dimension(83, 29));
+        btnañadirinsumo.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnañadirinsumoActionPerformed(evt);
+            }
+        });
 
-        jButton7.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
-        jButton7.setText("Editar");
-        jButton7.setMaximumSize(new java.awt.Dimension(83, 29));
-        jButton7.setMinimumSize(new java.awt.Dimension(83, 29));
+        btneditarinsumo.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        btneditarinsumo.setText("Editar");
+        btneditarinsumo.setMaximumSize(new java.awt.Dimension(83, 29));
+        btneditarinsumo.setMinimumSize(new java.awt.Dimension(83, 29));
+        btneditarinsumo.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btneditarinsumoActionPerformed(evt);
+            }
+        });
 
-        jButton8.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
-        jButton8.setText("Eliminar");
-        jButton8.setMaximumSize(new java.awt.Dimension(83, 29));
-        jButton8.setMinimumSize(new java.awt.Dimension(83, 29));
+        btneliminarinsumo.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        btneliminarinsumo.setText("Eliminar");
+        btneliminarinsumo.setMaximumSize(new java.awt.Dimension(83, 29));
+        btneliminarinsumo.setMinimumSize(new java.awt.Dimension(83, 29));
+        btneliminarinsumo.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btneliminarinsumoActionPerformed(evt);
+            }
+        });
 
-        jButton9.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
-        jButton9.setText("Limpiar");
+        btnlimpiarinsumo.setFont(new java.awt.Font("Segoe UI", 0, 16)); // NOI18N
+        btnlimpiarinsumo.setText("Limpiar");
+        btnlimpiarinsumo.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnlimpiarinsumoActionPerformed(evt);
+            }
+        });
 
         lblcosto.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
         lblcosto.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
@@ -441,24 +607,24 @@ public class Main extends javax.swing.JFrame {
                     .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 43, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(txtidreceta, javax.swing.GroupLayout.PREFERRED_SIZE, 43, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                 .addComponent(jLabel7))
-                            .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 86, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(btnañadirreceta, javax.swing.GroupLayout.PREFERRED_SIZE, 86, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                             .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
                                 .addGap(12, 12, 12)
-                                .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(txtestilo, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                 .addComponent(jLabel8)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addComponent(jTextField3))
+                                .addComponent(txtlitros))
                             .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
-                                .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 86, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(btneditarreceta, javax.swing.GroupLayout.PREFERRED_SIZE, 86, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jButton3)
+                                .addComponent(btneliminarreceta)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 87, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                                .addComponent(btnlimpiarreceta, javax.swing.GroupLayout.PREFERRED_SIZE, 87, javax.swing.GroupLayout.PREFERRED_SIZE))))
                     .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel2Layout.createSequentialGroup()
@@ -466,13 +632,13 @@ public class Main extends javax.swing.JFrame {
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanel2Layout.createSequentialGroup()
                                 .addGap(0, 0, Short.MAX_VALUE)
-                                .addComponent(jButton6, javax.swing.GroupLayout.PREFERRED_SIZE, 76, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(btnañadirinsumo, javax.swing.GroupLayout.PREFERRED_SIZE, 76, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addComponent(jButton7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(btneditarinsumo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addComponent(jButton8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(btneliminarinsumo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addComponent(jButton9)
+                                .addComponent(btnlimpiarinsumo)
                                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
                                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
@@ -484,25 +650,25 @@ public class Main extends javax.swing.JFrame {
                                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(jLabel12)
                                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                        .addComponent(jComboBox3, javax.swing.GroupLayout.PREFERRED_SIZE, 225, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(cbtipoinsumo, javax.swing.GroupLayout.PREFERRED_SIZE, 225, javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                         .addComponent(jLabel13)
                                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                        .addComponent(jComboBox4, 0, 128, Short.MAX_VALUE)
+                                        .addComponent(cbnombreinsumo, 0, 128, Short.MAX_VALUE)
                                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                         .addComponent(jLabel14)
                                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                        .addComponent(jTextField5, javax.swing.GroupLayout.PREFERRED_SIZE, 64, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                        .addComponent(txtcantidadinsumo, javax.swing.GroupLayout.PREFERRED_SIZE, 64, javax.swing.GroupLayout.PREFERRED_SIZE)))
                                 .addGap(17, 17, 17))))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(txtiddetallesrecetas, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(jLabel10)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jComboBox2, javax.swing.GroupLayout.PREFERRED_SIZE, 209, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(cbrecetas, javax.swing.GroupLayout.PREFERRED_SIZE, 209, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jButton5)
+                        .addComponent(btnseleccionarreceta)
                         .addGap(226, 226, 226))))
         );
         jPanel2Layout.setVerticalGroup(
@@ -515,34 +681,34 @@ public class Main extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel6)
-                    .addComponent(jTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtiddetallesrecetas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel10)
-                    .addComponent(jComboBox2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jButton5))
+                    .addComponent(cbrecetas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnseleccionarreceta))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtidreceta, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel7)
-                    .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtestilo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel8)
-                    .addComponent(jTextField3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtlitros, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel11)
                     .addComponent(jLabel12)
-                    .addComponent(jComboBox3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(cbtipoinsumo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel13)
-                    .addComponent(jComboBox4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(cbnombreinsumo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel14)
-                    .addComponent(jTextField5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(txtcantidadinsumo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButton1)
-                    .addComponent(jButton2)
-                    .addComponent(jButton3)
-                    .addComponent(jButton4)
-                    .addComponent(jButton6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jButton7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jButton8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jButton9))
+                    .addComponent(btnañadirreceta)
+                    .addComponent(btneditarreceta)
+                    .addComponent(btneliminarreceta)
+                    .addComponent(btnlimpiarreceta)
+                    .addComponent(btnañadirinsumo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btneditarinsumo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btneliminarinsumo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnlimpiarinsumo))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 374, Short.MAX_VALUE)
@@ -593,8 +759,8 @@ public class Main extends javax.swing.JFrame {
         TableModel model = tbinsumos.getModel();
         txtidinsumo.setText(model.getValueAt(i, 0).toString());
         txtinsumo.setText(model.getValueAt(i, 1).toString());
-        txtcantidad.setText(model.getValueAt(i, 2).toString());
-        txtcostounitario.setText(model.getValueAt(i, 3).toString());
+        cbtipoinsumoInsumos.setSelectedItem(model.getValueAt(i, 2).toString());
+        txtcantidad.setText(model.getValueAt(i, 3).toString());
         habilitarBotones();
     }//GEN-LAST:event_tbinsumosMouseClicked
 
@@ -625,6 +791,7 @@ public class Main extends javax.swing.JFrame {
             }
         }
         evt.setSource((char) KeyEvent.VK_CLEAR);
+        deshabilitarBotones();
         txtinsumo.requestFocus();
     }//GEN-LAST:event_btneliminarActionPerformed
 
@@ -632,18 +799,20 @@ public class Main extends javax.swing.JFrame {
         // TODO add your handling code here:
         String insumo = txtinsumo.getText().trim();
         String cantidad = txtcantidad.getText().trim();
+        String tipoinsumo = cbtipoinsumoInsumos.getSelectedItem().toString().trim();
         String costounit = txtcostounitario.getText().trim();
         String id = txtidinsumo.getText().trim();
 
-        if (!insumo.isEmpty() && !cantidad.isEmpty() && !costounit.isEmpty() && !id.isEmpty()) {
+        if (!insumo.isEmpty() && !tipoinsumo.isEmpty() && !cantidad.isEmpty() && !costounit.isEmpty() && !id.isEmpty()) {
             try {
-                Insumos insumos = new Insumos();
-                insumos.setNombre(insumo);
-                insumos.setCantidad(new BigDecimal(cantidad));
-                insumos.setCosto(Integer.parseInt(costounit));
-                insumos.setIdInsumos(Integer.parseInt(id));
+                Insumos ins = new Insumos();
+                ins.setNombre(insumo);
+                ins.setTipoInsumo(tipoinsumo);
+                ins.setCantidad(new BigDecimal(cantidad));
+                ins.setCosto(Integer.parseInt(costounit));
+                ins.setIdInsumos(Integer.parseInt(id));
 
-                if ( insumosDao.Actualizar(insumos)) {
+                if ( insumosDao.Actualizar(ins)) {
                     JOptionPane.showMessageDialog(null, "Insumo Actualizado","BeerApp", HEIGHT);
                     actualizarTablaInsumos();
                     limpiarCampos();
@@ -661,18 +830,22 @@ public class Main extends javax.swing.JFrame {
 
     private void btnañadirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnañadirActionPerformed
         // TODO add your handling code here:
-        String insumo = txtinsumo.getText().trim();
+        
+        String nombre = txtinsumo.getText().trim();
+        String tipoinsumo = cbtipoinsumoInsumos.getSelectedItem().toString().trim();
         String cantidad = txtcantidad.getText().trim();
-        String costounit = txtcostounitario.getText().trim();
-
-        if (!insumo.isEmpty() && !cantidad.isEmpty() && !costounit.isEmpty()) {
+        String costo = txtcostounitario.getText().trim();
+        
+        if (!nombre.isEmpty()  &&  !tipoinsumo.isEmpty() && !cantidad.isEmpty() && !costo.isEmpty()) {
             try {
-                Insumos insumos = new Insumos();
-                insumos.setNombre(insumo);
-                insumos.setCantidad(new BigDecimal(cantidad));
-                insumos.setCosto(Integer.parseInt(costounit));
+                Insumos stockinsumos = new Insumos();
+                stockinsumos.setNombre(nombre);
+                stockinsumos.setTipoInsumo(tipoinsumo);
+                stockinsumos.setCantidad(new BigDecimal(cantidad));
+                stockinsumos.setCosto(Integer.parseInt(costo));
+                
 
-                if (insumosDao.Insertar(insumos)) {
+                if (insumosDao.Insertar(stockinsumos)) {
                     JOptionPane.showMessageDialog(null,"Insumo guardado");
                     actualizarTablaInsumos();
                     limpiarCampos();
@@ -683,13 +856,300 @@ public class Main extends javax.swing.JFrame {
             }
         }else{
             JOptionPane.showMessageDialog(null, "Por favor complete todos los campos", "BeerApp", HEIGHT);
-
+            
         }
         evt.setSource((char) KeyEvent.VK_CLEAR);
         txtinsumo.requestFocus();
         deshabilitarBotones();
     }//GEN-LAST:event_btnañadirActionPerformed
 
+    private void btnañadirrecetaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnañadirrecetaActionPerformed
+        // TODO add your handling code here:
+        String estilo = txtestilo.getText().trim();
+        String litros = txtlitros.getText().trim();
+
+        if (!estilo.isEmpty() && !litros.isEmpty()) {
+            try {
+                if (recetasDao.existeRecetaPorEstilo(estilo)) {
+                    JOptionPane.showMessageDialog(null, "El estilo de receta ya existe", "Error", JOptionPane.ERROR_MESSAGE);
+
+                    limpiarCamposReceta();
+                    txtestilo.requestFocus();
+                    return;
+                }
+
+                Recetas receta = new Recetas();
+                receta.setNombre(estilo);
+                receta.setLitros(new BigDecimal(litros));
+
+                if (recetasDao.Insertar(receta)) {
+                    JOptionPane.showMessageDialog(null, "Receta Añadida Exitosamente");
+                    actualizarTablaReceta();
+                    limpiarCamposReceta();
+                    txtestilo.requestFocus();
+                }
+            } catch (Exception ex) {
+                System.err.println(ex.getMessage());
+            }
+        } else {
+            JOptionPane.showMessageDialog(null, "Por favor complete todos los campos", "CraftBeer Manager", JOptionPane.WARNING_MESSAGE);
+        }
+        evt.setSource((char) KeyEvent.VK_CLEAR);
+        txtestilo.requestFocus();
+        deshabilitarBotonesReceta();
+    }//GEN-LAST:event_btnañadirrecetaActionPerformed
+
+    private void cbtipoinsumoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cbtipoinsumoActionPerformed
+        // TODO add your handling code here:
+        String tipoSeleccionado = (String) cbtipoinsumo.getSelectedItem();
+
+        // Obtener los nombres de insumo correspondientes al tipo seleccionado
+        List<String> nombresInsumo = insumosDao.obtenerNombresInsumoPorTipo(tipoSeleccionado);
+
+        // Limpiar el JComboBox "cbnombre"
+        cbnombreinsumo.removeAllItems();
+
+        // Agregar los nombres de insumo al JComboBox "cbnombre"
+        for (String nombre : nombresInsumo) {
+            cbnombreinsumo.addItem(nombre);
+        }
+    }//GEN-LAST:event_cbtipoinsumoActionPerformed
+
+    private void btnseleccionarrecetaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnseleccionarrecetaActionPerformed
+        // TODO add your handling code here:
+        estiloSeleccionado = (String) cbrecetas.getSelectedItem();
+        //String estiloSeleccionado = (String) cbreceta.getSelectedItem();
+
+        // Obtener los datos de la receta seleccionada desde la base de datos
+        Recetas receta = recetasDao.obtenerRecetaPorEstilo(estiloSeleccionado);
+
+        if (receta != null) {
+            // Asignar los valores de la receta a los campos de texto
+            txtidreceta.setText(String.valueOf(receta.getIdRecetas()));
+            txtestilo.setText(receta.getNombre());
+            txtlitros.setText(receta.getLitros().toString());
+
+            DefaultTableModel modelo = new DefaultTableModel();
+            modelo.addColumn("Id");
+            modelo.addColumn("Tipo Insumo");
+            modelo.addColumn("Nombre");
+            modelo.addColumn("Cantidad");
+            modelo.addColumn("Costo");
+            modelo.addColumn("Id Insumo");
+
+            int idReceta = Integer.parseInt(txtidreceta.getText().trim());
+
+            List<DetallesReceta> recetaInsumos = detallesDao.obtenerRecetaInsumoPorEstiloIdReceta(estiloSeleccionado, idReceta);
+
+            for (DetallesReceta recetaInsumo : recetaInsumos) {
+                Insumos stockInsumo = insumosDao.obtenerStockInsumoPorId(recetaInsumo.getIdInsumos());
+
+                modelo.addRow(new Object[]{
+                    recetaInsumo.getIdDetalles(),
+                    stockInsumo.getTipoInsumo(),
+                    stockInsumo.getNombre(),
+                    recetaInsumo.getCantidad(),
+                    recetaInsumo.getCostoUnitario(),
+                    recetaInsumo.getIdInsumos()
+                });
+            }
+            tbdetallesreceta.setModel(modelo);
+        }
+
+        DefaultTableModel model = (DefaultTableModel) tbdetallesreceta.getModel();
+        int rowCount = model.getRowCount();
+        totalValor = 0;
+
+        for (int i = 0; i < rowCount; i++) {
+            int precioUnitario = Integer.parseInt(model.getValueAt(i, 4).toString());
+
+            totalValor += precioUnitario;
+        }
+
+        float costolitro = totalValor / 40;
+        lblcosto.setText("Costo de la Receta: " + totalValor + " Costo por Litro: " + costolitro);
+
+    }//GEN-LAST:event_btnseleccionarrecetaActionPerformed
+
+    private void btnañadirinsumoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnañadirinsumoActionPerformed
+        // TODO add your handling code here:
+        String tipoInsumo = cbtipoinsumo.getSelectedItem().toString();
+        String nombreInsumo = cbnombreinsumo.getSelectedItem().toString();
+        String cantidad = txtcantidadinsumo.getText().trim();
+        BigDecimal cantBD = new BigDecimal(cantidad);
+        int idReceta = Integer.parseInt(txtidreceta.getText().trim());
+
+        if (!tipoInsumo.isEmpty() && !nombreInsumo.isEmpty() && !cantidad.isEmpty()) {
+            try {
+                int idInsumo = insumosDao.obtenerIdPorNombre(nombreInsumo);
+
+                if (idInsumo != 0) {
+                    DetallesReceta recetaInsumo = new DetallesReceta();
+                    int costounit = insumosDao.obtenerCostoPorNombre(nombreInsumo);
+                    int costo = cantBD.multiply(BigDecimal.valueOf(costounit)).intValue();
+                    recetaInsumo.setCostoUnitario(costo);
+                    recetaInsumo.setIdReceta(idReceta);
+                    recetaInsumo.setIdInsumos(idInsumo);
+                    recetaInsumo.setCantidad(cantBD);
+                    
+
+                    if (detallesDao.Insertar(recetaInsumo)) {
+                        JOptionPane.showMessageDialog(null, "Insumo añadido a la receta exitosamente");
+                        //limpiarCamposInsumo();
+                        // Actualizar la tabla tbreceta con los nuevos datos
+                        actualizarTablaReceta();
+                        sumaTabla();
+                      
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(null, "El insumo seleccionado no existe", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception ex) {
+                System.err.println(ex.getMessage());
+            }
+        } else {
+            JOptionPane.showMessageDialog(null, "Por favor complete todos los campos", "CraftBeer Manager", JOptionPane.WARNING_MESSAGE);
+        }
+        txtcantidad.setText("");
+        txtcantidad.requestFocus();
+        limpiarCamposDetallesReceta();
+        deshabilitarBotonesRecetaInsumos();
+    }//GEN-LAST:event_btnañadirinsumoActionPerformed
+
+//    private void cargarListaReceta() {
+//        try {
+//            listaRecetas.clear();
+//            listaRecetas = recetasDao.ObtenerTodos();
+//            DefaultTableModel model = (DefaultTableModel) tbestilos.getModel();
+//            model.setRowCount(0);
+//
+//            for (Receta rct : listaReceta) {
+//                Object[] row = new Object[3];
+//                row[0] = rct.getIdReceta();
+//                row[1] = rct.getEstilo();
+//                row[2] = rct.getLitros();
+//                model.addRow(row);
+//
+//            }
+//
+//        } catch (Exception e) {
+//            System.err.println(e.getMessage());
+//
+//        }
+//
+//    }
+//    
+    
+    private void btneliminarinsumoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btneliminarinsumoActionPerformed
+        // TODO add your handling code here:
+        int numerofila = tbdetallesreceta.getSelectedRow();
+        if (numerofila >= 0) {
+            int option = JOptionPane.showConfirmDialog(null, "¿Estas seguro de que quieres eliminar?", "Confirmar Accion", JOptionPane.YES_NO_OPTION);
+            if (option == 0) {
+                TableModel model = tbdetallesreceta.getModel();
+                String iddetalle = model.getValueAt(numerofila, 0).toString();
+                int iddetalleint = Integer.parseInt(iddetalle);
+                if (detallesDao.eliminar(iddetalleint)) {
+                    JOptionPane.showMessageDialog(null, "Producto Eliminado", "CraftBeer Manager", HEIGHT);
+                    //
+                    actualizarTablaReceta();
+                    limpiarCamposReceta();
+                } else {
+                    JOptionPane.showMessageDialog(null, "No se puede Eliminar", "CraftBeer Manager", HEIGHT);
+
+                }
+            } else {
+                JOptionPane.showMessageDialog(null, "Por favor seleccione una fila a eliminar", "CraftBeer Manager", HEIGHT);
+
+            }
+        }
+        evt.setSource((char) KeyEvent.VK_CLEAR);
+        cbtipoinsumo.requestFocus();
+        deshabilitarBotonesRecetaInsumos();
+        limpiarCamposDetallesReceta();
+    }//GEN-LAST:event_btneliminarinsumoActionPerformed
+
+    private void tbdetallesrecetaMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tbdetallesrecetaMouseClicked
+        // TODO add your handling code here:
+        int i = tbdetallesreceta.getSelectedRow();
+        TableModel model = tbdetallesreceta.getModel();
+        txtiddetallesrecetas.setText(model.getValueAt(i, 0).toString());
+        cbtipoinsumo.setSelectedItem(model.getValueAt(i, 1));
+        cbnombreinsumo.setSelectedItem(model.getValueAt(i, 2));
+        txtcantidadinsumo.setText(model.getValueAt(i, 3).toString());
+        txtidinsumo.setText(model.getValueAt(i, 5).toString());
+        
+        habilitarBotonesRecetaInsumos();
+    }//GEN-LAST:event_tbdetallesrecetaMouseClicked
+
+    private void btneditarinsumoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btneditarinsumoActionPerformed
+        // TODO add your handling code here:
+        String tipo = cbtipoinsumo.getSelectedItem().toString().trim();
+        String nombre = cbnombreinsumo.getSelectedItem().toString().trim();
+        String cantidad = txtcantidadinsumo.getText().trim();
+        String id = txtiddetallesrecetas.getText().trim();
+        String idreceta = txtidreceta.getText().trim();
+        String idinsumo  = txtidinsumo.getText().trim();
+
+        if (!tipo.isEmpty() && !nombre.isEmpty() && !cantidad.isEmpty() && !id.isEmpty()) {
+            try {
+                DetallesReceta recIns = new DetallesReceta();
+                recIns.setCantidad(new BigDecimal(cantidad));
+                recIns.setIdDetalles(Integer.parseInt(id));
+                recIns.setIdReceta(Integer.parseInt(idreceta));
+                recIns.setIdInsumos(Integer.parseInt(idinsumo));
+                int costounit = insumosDao.obtenerCostoPorNombre(nombre);
+                int costo = costounit * Integer.parseInt(cantidad);
+                JOptionPane.showMessageDialog(rootPane, "Costo del Insumo: "+costounit+ "  Costo nuevo: "+costo+"Id Insumo: "+idinsumo);
+                recIns.setCostoUnitario(costo);
+
+                if (detallesDao.Actualizar(recIns)) {
+                    JOptionPane.showMessageDialog(null, "Insumo Actualizado", "CraftBeer Manager", HEIGHT);
+                    actualizarTablaReceta();
+                    limpiarCamposReceta();
+                    cbtipoinsumo.requestFocus();
+                }
+            } catch (Exception ex) {
+                System.err.println(ex.getMessage());
+            }
+        } else {
+            JOptionPane.showMessageDialog(null, "Por favor complete todos los campos", "CraftBeer Manager", HEIGHT);
+
+        }
+        deshabilitarBotonesRecetaInsumos();
+        limpiarCamposDetallesReceta();
+        
+    }//GEN-LAST:event_btneditarinsumoActionPerformed
+
+    private void btnlimpiarinsumoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnlimpiarinsumoActionPerformed
+        // TODO add your handling code here:
+        limpiarCamposDetallesReceta();
+    }//GEN-LAST:event_btnlimpiarinsumoActionPerformed
+
+    
+    private void sumaTabla() {
+        DefaultTableModel model = (DefaultTableModel) tbdetallesreceta.getModel();
+        int rowCount = model.getRowCount();
+        totalValor = 0;
+
+        for (int i = 0; i < rowCount; i++) {
+            int precioUnitario = Integer.parseInt(model.getValueAt(i, 4).toString());
+
+            totalValor += precioUnitario;
+        }
+
+        float costolitro = totalValor/40;
+        lblcosto.setText("Costo de la Receta: "+totalValor+" Costo por Litro: "+costolitro);
+        
+        DetallesReceta details = new DetallesReceta();
+        String iddetallesstr = txtiddetallesrecetas.getText().trim();
+        if(detallesDao.actualizarCostoUnitario(Integer.parseInt(iddetallesstr), totalValor)){
+            cbtipoinsumo.requestFocus();
+        }
+        
+    }
+    
+    
     
     /**
      * @param args the command line arguments
@@ -719,22 +1179,22 @@ public class Main extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnañadir;
+    private javax.swing.JButton btnañadirinsumo;
+    private javax.swing.JButton btnañadirreceta;
     private javax.swing.JButton btneditar;
+    private javax.swing.JButton btneditarinsumo;
+    private javax.swing.JButton btneditarreceta;
     private javax.swing.JButton btneliminar;
+    private javax.swing.JButton btneliminarinsumo;
+    private javax.swing.JButton btneliminarreceta;
     private javax.swing.JButton btnlimpiar;
-    private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
-    private javax.swing.JButton jButton3;
-    private javax.swing.JButton jButton4;
-    private javax.swing.JButton jButton5;
-    private javax.swing.JButton jButton6;
-    private javax.swing.JButton jButton7;
-    private javax.swing.JButton jButton8;
-    private javax.swing.JButton jButton9;
-    private javax.swing.JComboBox<String> jComboBox1;
-    private javax.swing.JComboBox<String> jComboBox2;
-    private javax.swing.JComboBox<String> jComboBox3;
-    private javax.swing.JComboBox<String> jComboBox4;
+    private javax.swing.JButton btnlimpiarinsumo;
+    private javax.swing.JButton btnlimpiarreceta;
+    private javax.swing.JButton btnseleccionarreceta;
+    private javax.swing.JComboBox<String> cbnombreinsumo;
+    private javax.swing.JComboBox<String> cbrecetas;
+    private javax.swing.JComboBox<String> cbtipoinsumo;
+    private javax.swing.JComboBox<String> cbtipoinsumoInsumos;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
@@ -756,18 +1216,18 @@ public class Main extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JTabbedPane jTabbedPane1;
-    private javax.swing.JTable jTable2;
-    private javax.swing.JTextField jTextField1;
-    private javax.swing.JTextField jTextField2;
-    private javax.swing.JTextField jTextField3;
-    private javax.swing.JTextField jTextField4;
-    private javax.swing.JTextField jTextField5;
     private javax.swing.JLabel lblcosto;
+    private javax.swing.JTable tbdetallesreceta;
     private javax.swing.JTable tbinsumos;
     private javax.swing.JTable tbrecetas;
     private javax.swing.JTextField txtcantidad;
+    private javax.swing.JTextField txtcantidadinsumo;
     private javax.swing.JTextField txtcostounitario;
+    private javax.swing.JTextField txtestilo;
+    private javax.swing.JTextField txtiddetallesrecetas;
     private javax.swing.JTextField txtidinsumo;
+    private javax.swing.JTextField txtidreceta;
     private javax.swing.JTextField txtinsumo;
+    private javax.swing.JTextField txtlitros;
     // End of variables declaration//GEN-END:variables
 }
